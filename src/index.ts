@@ -12,6 +12,14 @@ function parseTimeWithTZ(time: string): DateTime | null {
     return dt;
 }
 
+function parseTimeWithNoTZ(time: string): DateTime | null {
+    const dt = DateTime.fromISO(time, { zone: 'UTC' });
+    if (dt.isValid && +dt === +DateTime.fromISO(time, { zone: 'UTC+1' })) {
+        return null;
+    }
+    return dt;
+}
+
 if ((process.argv.length === 4 || process.argv.length === 5) && process.argv[2] === FROM_EPOCH_SECONDS) {
     const epoch = +process.argv[3];
     const zone = process.argv[4] || 'UTC';
@@ -33,9 +41,22 @@ if ((process.argv.length === 4 || process.argv.length === 5) && process.argv[2] 
         const zone = process.argv[4];
         console.log(dt.setZone(zone).toISO());
     }
+} else if (process.argv.length === 6 && process.argv[2] === CONV_TIME) {
+    const time = process.argv[3];
+    const dt = parseTimeWithNoTZ(time);
+    if (!dt) {
+        console.error('Time must not contain a timezone');
+    } else if (!dt.isValid) {
+        console.error(`Invalid time: ${time}`);
+    } else {
+        const fromZone = process.argv[4];
+        const toZone = process.argv[5];
+        console.log(DateTime.fromISO(time, { zone: fromZone }).setZone(toZone).toISO());
+    }
 } else {
     console.log('Usage:');
     console.log(`    time-calc ${FROM_EPOCH_SECONDS} <epoch-s> [timezone]`);
     console.log(`    time-calc ${FROM_EPOCH_MILLISECONDS} <epoch-ms> [timezone]`);
     console.log(`    time-calc ${CONV_TIME} <time-with-tz> <timezone>`);
+    console.log(`    time-calc ${CONV_TIME} <time-without-tz> <from-timezone> <to-timezone>`);
 }
